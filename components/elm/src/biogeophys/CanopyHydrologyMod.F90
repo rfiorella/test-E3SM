@@ -27,7 +27,8 @@ module CanopyHydrologyMod
   use VegetationType    , only : veg_pp
   use VegetationDataType, only : veg_ws, veg_wf  
   use elm_varcon        , only : snw_rds_min
-  use pftvarcon         , only : irrigated
+  ! Claire added elai_scale, esai_scale, and max_interception for testing the role of LAI/SAI on snow accumulation 
+  use pftvarcon         , only : irrigated, accum_factor, elai_scale, esai_scale, max_interception, shrub_mult
   use GridcellType      , only : grc_pp
   use timeinfoMod, only : dtime_mod
   !
@@ -140,7 +141,7 @@ contains
      ! !LOCAL VARIABLES:
      integer  :: f                                            ! filter index
      integer  :: tpu_ind                                      ! index of topounit to grid
-     integer  :: pi                                           ! patch index
+     integer  :: pi                                           ! patch index Claire is pretty sure this is a duplicate 
      integer  :: p                                            ! patch index
      integer  :: c                                            ! column index
      integer  :: l                                            ! landunit index
@@ -163,11 +164,15 @@ contains
      real(r8) :: z_avg                                        ! grid cell average snow depth
      real(r8) :: rho_avg                                      ! avg density of snow column
      real(r8) :: temp_snow_depth,temp_intsnow                 ! temporary variables
+     real(r8) :: shrub_area                                   ! area of column with Arctic shrub PFT, Claire added this and below
+     real(r8) :: grass_area                                   ! Area of column with Arctic grass PFT 
+     real(r8) :: W                                            ! Snow redistribution weight 
+     real(r8) :: partition_snow                               ! Snowfall after partitioning/ wind redistribution 
+
      real(r8) :: fmelt
      real(r8) :: smr
      real(r8) :: delf_melt
      real(r8) :: fsno_new
-     real(r8) :: accum_factor
      real(r8) :: newsnow(bounds%begc:bounds%endc)
      real(r8) :: snowmelt(bounds%begc:bounds%endc)
      integer  :: j
@@ -195,7 +200,9 @@ contains
           n_melt               => col_pp%n_melt                               , & ! Input:  [real(r8) (:)   ]  SCA shape parameter                     
           zi                   => col_pp%zi                                   , & ! Output: [real(r8) (:,:) ]  interface level below a "z" level (m) 
           dz                   => col_pp%dz                                   , & ! Output: [real(r8) (:,:) ]  layer depth (m)                       
-          z                    => col_pp%z                                    , & ! Output: [real(r8) (:,:) ]  layer thickness (m)                   
+          z                    => col_pp%z                                    , & ! Output: [real(r8) (:,:) ]  layer thickness (m)   
+
+          pftwt                => veg_pp%wtcol                             ,& ! Input: [real(r8) (:)     ]  percent of pft in column !Claire added this on July 20 so that we can add in the veg partitioning                  
 
           forc_rain            => top_af%rain                              , & ! Input:  [real(r8) (:)   ]  rain rate (kg H2O/m**2/s, or mm liquid H2O/s)                        
           forc_snow            => top_af%snow                              , & ! Input:  [real(r8) (:)   ]  snow rate (kg H2O/m**2/s, or mm liquid H2O/s)                        
@@ -251,7 +258,6 @@ contains
           )
 
        ! Compute time step
-       
        dtime = get_step_size()
 
        do gg = bounds%begg,bounds%endg
@@ -292,10 +298,26 @@ contains
              if (ctype(c) /= icol_sunwall .and. ctype(c) /= icol_shadewall) then
 
                 if (frac_veg_nosno(p) == 1 .and. (forc_rain(t) + forc_snow(t)) > 0._r8) then
-
+           
+                 !Claire added this snow partitioning code on July 24 2023
+ 
+                   if (p == 12 .or. p == 13) then !if PFT is arctic shrub
+                      shrub_area = pftwt(12) !percent area that shrubs take up in the column
+                      grass_area = pftwt(13) !percent area that grass take up in the column 
+                      W = (shrub_area + grass_area)/(shrub_area + (1._r8/shrub_mult) * grass_area) !weight for shrub PFT
+                      if (p == 13) then 
+                         W = (shrub_area + grass_area)/(shrub_mult * shrub_area + grass_area) 
+                      end if 
+                      partition_snow = W * forc_snow(t)
+                   end if 
+             
+                   else then
+                      partition_snow = forc_snow(t) 
+                   end if 
+                  
                    ! determine fraction of input precipitation that is snow and rain
-                   fracsnow(p) = forc_snow(t)/(forc_snow(t) + forc_rain(t))
-                   fracrain(p) = forc_rain(t)/(forc_snow(t) + forc_rain(t))
+                   fracsnow(p) = partition_snow/(partition_snow + forc_rain(t))
+                   fracrain(p) = forc_rain(t)/(partition_snow + forc_rain(t))
 
                    ! The leaf water capacities for solid and liquid are different,
                    ! generally double for snow, but these are of somewhat less
@@ -304,16 +326,18 @@ contains
                    ! vegetation storage of solid water is the same as liquid water.
                    h2ocanmx = dewmx(p) * (elai(p) + esai(p))
 
+
                    ! Coefficient of interception
                    ! set fraction of potential interception to max 0.25
-                   fpi = 0.25_r8*(1._r8 - exp(-0.5_r8*(elai(p) + esai(p))))
+                   ! May 23 Claire edited the parametrization for fpi by adding in tunable params 
+                   fpi = max_interception*(1._r8 - exp(-0.5_r8*(elai_scale*elai(p) + esai_scale*esai(p))))
 
                    ! Direct throughfall
-                   qflx_through_snow(p) = forc_snow(t) * (1._r8-fpi)
-                   qflx_through_rain(p) = forc_rain(t) * (1._r8-fpi)
+                   qflx_through_snow(p) = partition_snow * (1._r8-fpi)
+                   qflx_through_rain(p) = partition_snow * (1._r8-fpi)
 
                    ! Intercepted precipitation [mm/s]
-                   qflx_prec_intr(p) = (forc_snow(t) + forc_rain(t)) * fpi
+                   qflx_prec_intr(p) = (partition_snow + forc_rain(t)) * fpi
 
                    ! Water storage of intercepted precipitation and dew
                    h2ocan(p) = max(0._r8, h2ocan(p) + dtime*qflx_prec_intr(p))
@@ -542,8 +566,8 @@ contains
              ! snowmelt from previous time step * dtime
              snowmelt(c) = qflx_snow_melt(c) * dtime
 
-             ! set shape factor for accumulation of snow
-             accum_factor=0.1
+             ! set shape factor for accumulation of snow. This is now defined in the parameter nc. 
+             !accum_factor=0.1
 
              if (h2osno(c) > 0.0) then
 
@@ -750,7 +774,7 @@ contains
           fwet           => veg_ws%fwet            , & ! Output: [real(r8) (:) ]  fraction of canopy that is wet (0 to 1) 
           fdry           => veg_ws%fdry              & ! Output: [real(r8) (:) ]  fraction of foliage that is green and dry [-] (new)
           )
-
+	
        do fp = 1,numf
           p = filter(fp)
           if (frac_veg_nosno(p) == 1) then

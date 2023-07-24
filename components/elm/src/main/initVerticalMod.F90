@@ -28,6 +28,9 @@ module initVerticalMod
   use ncdio_pio
   use topounit_varcon  , only : max_topounits
   use GridcellType     , only : grc_pp
+  !Claire added in an nmelt_scale on May 19. It should be 200 for Swenson and Lawrence, but we
+  ! Will test out different values in a sensitivity analysis 
+  use pftvarcon      , only : nmelt_scale
   !
   ! !PUBLIC TYPES:
   implicit none
@@ -677,7 +680,7 @@ contains
             ! of n_melt that assumes little topographic variability within the column
             col_pp%n_melt(c) = 10._r8
          else
-            col_pp%n_melt(c) = 200.0/max(10.0_r8, col_pp%topo_std(c))
+            col_pp%n_melt(c) = nmelt_scale/max(10.0_r8, col_pp%topo_std(c))
          end if
 
          ! microtopographic parameter, units are meters (try smooth function of slope)

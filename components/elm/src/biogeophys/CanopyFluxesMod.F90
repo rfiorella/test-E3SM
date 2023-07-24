@@ -419,7 +419,6 @@ contains
          qflx_ev_snow         => veg_wf%qflx_ev_snow         , & ! Output: [real(r8) (:)   ]  evaporation flux from snow (W/m**2) [+ to atm]
          qflx_ev_soil         => veg_wf%qflx_ev_soil         , & ! Output: [real(r8) (:)   ]  evaporation flux from soil (W/m**2) [+ to atm]
          qflx_ev_h2osfc       => veg_wf%qflx_ev_h2osfc       , & ! Output: [real(r8) (:)   ]  evaporation flux from h2osfc (W/m**2) [+ to atm]
-
          rssun                => photosyns_vars%rssun_patch                , & ! Output: [real(r8) (:)   ]  leaf sunlit stomatal resistance (s/m) (output from Photosynthesis)
          rssha                => photosyns_vars%rssha_patch                , & ! Output: [real(r8) (:)   ]  leaf shaded stomatal resistance (s/m) (output from Photosynthesis)
 

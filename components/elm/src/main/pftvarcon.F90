@@ -10,7 +10,7 @@ module pftvarcon
   use shr_log_mod , only : errMsg => shr_log_errMsg
   use abortutils  , only : endrun
   use elm_varpar  , only : mxpft, numrad, ivis, inir, cft_lb, cft_ub
-  use elm_varpar  , only:  mxpft_nc
+  use elm_varpar  , only:  mxpft_nc, nlevsno
   use elm_varctl  , only : iulog, use_vertsoilc
   use elm_varpar  , only : nlevdecomp_full, nsoilorder
   use elm_varctl  , only : nu_com
@@ -295,8 +295,19 @@ module pftvarcon
   real(r8)              :: jmax_np2            !jmax~np relationship coefficient
   real(r8)              :: jmax_np3            !jmax~np relationship coefficient
   real(r8)              :: laimax
+
   ! Hydrology
   real(r8)              :: rsub_top_globalmax
+  ! Snow ! CB+KEB added May 11 23
+  real(r8), allocatable :: accum_factor        !k accum factor from Swensen and Lawrence 2012
+  real(r8), allocatable :: elai_scale          ! Claire added LAI/SAI/canopy interception tunable params 
+  real(r8), allocatable :: esai_scale 
+  real(r8), allocatable :: max_interception
+  real(r8), allocatable :: shrub_mult          ! Claire added this on July 24 2023. Multiplication factor for shrub partitioning. 2 would mean that twice as much snow falls in shrubs vs outside of shrubs, with forc_snow the average across 
+! the two PFTs 
+  ! Nmelt scale factor added May 19 23 
+  real(r8), allocatable :: nmelt_scale
+  real(r8), allocatable :: dzmin16(:)
   ! Soil erosion ground cover
   real(r8), allocatable :: gcbc_p(:)           !effectiveness of surface cover in reducing rainfall-driven erosion
   real(r8), allocatable :: gcbc_q(:)           !effectiveness of surface cover in reducing runoff-driven erosion
@@ -592,6 +603,14 @@ contains
     allocate( mbbopt             (0:mxpft) )
     allocate( nstor              (0:mxpft) )
     allocate( br_xr              (0:mxpft) )
+    ! Snow parameters
+    allocate( accum_factor )
+    allocate( elai_scale)
+    allocate( esai_scale)
+    allocate( max_interception)  
+    allocate( shrub_mult)
+    allocate( nmelt_scale ) 
+    allocate( dzmin16            (0:16)  )
     ! Ground cover for soil erosion
     allocate( gcbc_p             (0:mxpft) )
     allocate( gcbc_q             (0:mxpft) )
@@ -1002,6 +1021,22 @@ contains
     !if ( .not. readv) call endrun(msg='ERROR:  error in reading in pft data'//errMsg(__FILE__,__LINE__))
     if (.not. readv) br_xr(:) = 0._r8
     call ncd_io('tc_stress', tc_stress, 'read', ncid, readvar=readv, posNOTonfile=.true.)
+    if ( .not. readv) call endrun(msg='ERROR:  error in reading in pft data'//errMsg(__FILE__,__LINE__))
+    !added CB+KEB May 11 23
+    call ncd_io('accum_factor', accum_factor, 'read', ncid, readvar=readv, posNOTonfile=.true.)
+    if ( .not. readv) call endrun(msg='ERROR:  error in reading in pft data'//errMsg(__FILE__,__LINE__))
+    call ncd_io('elai_scale', elai_scale, 'read', ncid, readvar=readv, posNOTonfile=.true.)
+    if ( .not. readv) call endrun(msg='ERROR:  error in reading in pft data'//errMsg(__FILE__,__LINE__))
+    call ncd_io('esai_scale', esai_scale, 'read', ncid, readvar=readv, posNOTonfile=.true.)
+    if ( .not. readv) call endrun(msg='ERROR:  error in reading in pft data'//errMsg(__FILE__,__LINE__))
+    call ncd_io('max_interception', max_interception, 'read', ncid, readvar=readv, posNOTonfile=.true.)
+    if ( .not. readv) call endrun(msg='ERROR:  error in reading in pft data'//errMsg(__FILE__,__LINE__))
+    call ncd_io('shrub_mult', shrub_mult, 'read', ncid, readvar=readv, posNOTonfile=.true.)
+    if ( .not. readv) call endrun(msg='ERROR:  error in reading in pft data'//errMsg(__FILE__,__LINE__))
+    call ncd_io('dzmin16', dzmin16, 'read', ncid, readvar=readv, posNOTonfile=.true.)
+    if ( .not. readv) call endrun(msg='ERROR:  error in reading in pft data'//errMsg(__FILE__,__LINE__))
+!added CB May 19 23
+    call ncd_io('nmelt_scale', nmelt_scale, 'read', ncid, readvar=readv, posNOTonfile=.true.)
     if ( .not. readv) call endrun(msg='ERROR:  error in reading in pft data'//errMsg(__FILE__,__LINE__))
     call ncd_io('gcbc_p',gcbc_p, 'read', ncid, readvar=readv, posNOTonfile=.true.)
     if ( .not. readv ) gcbc_p(:) = 0._r8

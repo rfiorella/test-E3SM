@@ -20,6 +20,7 @@ module SnowHydrologyMod
   use elm_varpar      , only : nlevsno
   use elm_varctl      , only : iulog, use_extrasnowlayers
   use elm_varcon      , only : namec, h2osno_max
+  use pftvarcon       , only : dzmin16
   use atm2lndType     , only : atm2lnd_type
   use AerosolType     , only : aerosol_type
   use TopounitDataType, only : topounit_atmospheric_state
@@ -97,10 +98,10 @@ module SnowHydrologyMod
   ! Hardcoded maximum of 16 snowlayers
   ! The bottom layer has no limit on thickness, hence the last element of the dzmax_*
   ! arrays is 'huge'.
-  real(r8), parameter :: dzmin16(16) = &      ! minimum of top snow layer
-               (/ 0.010_r8, 0.015_r8, 0.025_r8, 0.055_r8, 0.115_r8, 0.235_r8, &
-                  0.475_r8, 0.955_r8, 1.915_r8, 1.915_r8, 1.915_r8, 1.915_r8, &
-                  1.915_r8, 1.915_r8, 1.915_r8, 1.915_r8 /)
+  !real(r8), parameter :: dzmin16(16) = &      ! minimum of top snow layer
+  !             (/ 0.010_r8, 0.015_r8, 0.025_r8, 0.055_r8, 0.115_r8, 0.235_r8, &
+  !                0.475_r8, 0.955_r8, 1.915_r8, 1.915_r8, 1.915_r8, 1.915_r8, &
+  !                1.915_r8, 1.915_r8, 1.915_r8, 1.915_r8 /)
   real(r8), parameter :: dzmax_l(16) = &    ! maximum thickness of layer when no layers beneath
                (/ 0.03_r8, 0.07_r8, 0.18_r8, 0.41_r8, 0.88_r8, 1.83_r8, &
                   3.74_r8, 7.57_r8, 15.24_r8, 15.24_r8, 15.24_r8, 15.24_r8, &
