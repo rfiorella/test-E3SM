@@ -164,10 +164,11 @@ contains
      real(r8) :: z_avg                                        ! grid cell average snow depth
      real(r8) :: rho_avg                                      ! avg density of snow column
      real(r8) :: temp_snow_depth,temp_intsnow                 ! temporary variables
-     real(r8) :: shrub_area                                   ! area of column with Arctic shrub PFT, Claire added this and below
-     real(r8) :: grass_area                                   ! Area of column with Arctic grass PFT 
-     real(r8) :: W                                            ! Snow redistribution weight 
-     real(r8) :: partition_snow                               ! Snowfall after partitioning/ wind redistribution 
+    ! real(r8) :: shrub_area                                   ! area of column with Arctic shrub PFT, Claire added this and below
+    ! real(r8) :: grass_area                                   ! Area of column with Arctic grass PFT 
+    ! real(r8) :: W                                            ! Snow redistribution weight 
+    ! real(r8) :: partition_snow                               ! Snowfall after partitioning/ wind redistributioni
+! No longer doing any of this snow partitioning stuff, for now at least 
 
      real(r8) :: fmelt
      real(r8) :: smr
@@ -217,7 +218,6 @@ contains
 
           t_grnd               => col_es%t_grnd              , & ! Input:  [real(r8) (:)   ]  ground temperature (Kelvin)             
           t_soisno             => col_es%t_soisno            , & ! Output: [real(r8) (:,:) ]  soil temperature (Kelvin)  
-
           do_capsnow           => col_ws%do_capsnow           , & ! Output: [logical  (:)   ]  true => do snow capping                  
           h2ocan               => veg_ws%h2ocan             , & ! Output: [real(r8) (:)   ]  total canopy water (mm H2O)             
           h2osfc               => col_ws%h2osfc               , & ! Output: [real(r8) (:)   ]  surface water (mm)                      
@@ -299,21 +299,19 @@ contains
 
                 if (frac_veg_nosno(p) == 1 .and. (forc_rain(t) + forc_snow(t)) > 0._r8) then
            
-                 !Claire added this snow partitioning code on July 24 2023
+                 !Claire added this snow partitioning code on July 24 2023.. Not doing this anymore 
  
-                   if (p == 12 .or. p == 13) then !if PFT is arctic shrub
-                      shrub_area = pftwt(12) !percent area that shrubs take up in the column
-                      grass_area = pftwt(13) !percent area that grass take up in the column 
-                      W = (shrub_area + grass_area)/(shrub_area + (1._r8/shrub_mult) * grass_area) !weight for shrub PFT
-                      if (p == 13) then 
-                         W = (shrub_area + grass_area)/(shrub_mult * shrub_area + grass_area) 
-                      end if 
-                      partition_snow = W * forc_snow(t)
-                   end if 
-             
-                   else then
-                      partition_snow = forc_snow(t) 
-                   end if 
+                  ! if (p == 12 .or. p == 13) then !if PFT is arctic shrub
+                  !    shrub_area = pftwt(12) !percent area that shrubs take up in the column
+                  !    grass_area = pftwt(13) !percent area that grass take up in the column 
+                  !    W = (shrub_area + grass_area)/(shrub_area + (1./shrub_mult) * grass_area) !weight for shrub PFT
+                  !    if (p == 13) then 
+                  !       W = (shrub_area + grass_area)/(shrub_mult * shrub_area + grass_area) 
+                  !    end if  
+                  !    partition_snow = W * forc_snow(t)
+                  ! else 
+                  !    partition_snow = forc_snow(t) 
+                  ! end if 
                   
                    ! determine fraction of input precipitation that is snow and rain
                    fracsnow(p) = partition_snow/(partition_snow + forc_rain(t))
