@@ -1265,10 +1265,14 @@ contains
     end if
     wt_lunit(begg:endg,:,istsoil) = wt_lunit(begg:endg,:,istsoil) / 100._r8
     wt_lunit(begg:endg,:,istcrop) = wt_lunit(begg:endg,:,istcrop) / 100._r8
-    wt_polygon(begg:endg,:,ihighcenpoly) = wt_polygon(begg:endg,:,ihighcenpoly) / 100._r8
-    wt_polygon(begg:endg,:,iflatcenpoly) = wt_polygon(begg:endg,:,iflatcenpoly) / 100._r8
-    wt_polygon(begg:endg,:,ilowcenpoly) = wt_polygon(begg:endg,:,ilowcenpoly) / 100._r8
-    wt_nat_patch(begg:endg,:,:)   = wt_nat_patch(begg:endg,:,:) / 100._r8
+    if (use_polygonal_tundra) then
+      wt_polygon(begg:endg,:,ihighcenpoly) = wt_polygon(begg:endg,:,ihighcenpoly) / 100._r8
+      wt_polygon(begg:endg,:,iflatcenpoly) = wt_polygon(begg:endg,:,iflatcenpoly) / 100._r8
+      wt_polygon(begg:endg,:,ilowcenpoly) = wt_polygon(begg:endg,:,ilowcenpoly) / 100._r8
+    else
+      wt_polygon(begg:endg,:,:) = 0._r8
+    end if
+   wt_nat_patch(begg:endg,:,:)   = wt_nat_patch(begg:endg,:,:) / 100._r8
     !call check_sums_equal_1_3d(wt_nat_patch, begg, 'wt_nat_patch', subname,ntpu)
     call check_sums_equal_1_3d(wt_nat_patch, begg, 'wt_nat_patch', subname)
 
