@@ -24,11 +24,11 @@ module surfrdUtilsMod
   public :: collapse_crop_types ! Collapse unused crop types into types used in this run
   public :: collapse_crop_var   ! Collapse crop variables according to cft weights determined in previous "collapse" subroutines
   public :: convert_pft_to_cft  ! Conversion of crops from natural veg to CFT
-  
+
   !-----------------------------------------------------------------------
 
 contains
-  
+
   !-----------------------------------------------------------------------
   subroutine check_sums_equal_1_3d(arr, lb, name, caller)
     !
@@ -37,7 +37,7 @@ contains
     !
     ! Uses
     use topounit_varcon, only : max_topounits, has_topounit
-    
+
     ! !ARGUMENTS:
     integer         , intent(in) :: lb           ! lower bound of the first dimension of arr
     real(r8)        , intent(in) :: arr(lb:,:,:)   ! array to check
@@ -56,7 +56,7 @@ contains
     found = .false.
 
     do nl = lbound(arr, 1), ubound(arr, 1)
-       tm = max_topounits          
+       tm = max_topounits
        do t = 1, tm
           if (arr(nl,t,1) >=0._r8) then        ! Check sum only if topounit is valid
              if (abs(sum(arr(nl,t,:)) - 1._r8) > eps) then
@@ -72,6 +72,7 @@ contains
     if (found) then
        write(iulog,*) trim(caller), ' ERROR: sum of ', trim(name), ' not 1.0 at nl=', nindx, ' and t=', tindx
        write(iulog,*) 'sum is: ', sum(arr(nindx,t,:))
+       write(iulog,*) arr(nindx,t,:)
        call endrun(msg=errMsg(__FILE__, __LINE__))
     end if
 
@@ -158,15 +159,15 @@ contains
   end subroutine convert_cft_to_pft
 
   !-----------------------------------------------------------------------
-  
+
   subroutine convert_pft_to_cft( begg, endg )
    !
-   ! THIS ROUTINE IS CURRENTLY NOT USED, SAVING FOR A RAINY DAY (RGK 07-2022) 
-   ! 
+   ! THIS ROUTINE IS CURRENTLY NOT USED, SAVING FOR A RAINY DAY (RGK 07-2022)
+   !
    ! !DESCRIPTION:
    !        Moves the crops from the PFT landunit to their own landunit.
    !        The PCT of natural vegetation and crops are updated after creating
-   !        the new crop landunit 
+   !        the new crop landunit
    ! !USES:
    use elm_varsur      , only : wt_lunit, wt_nat_patch, wt_cft
    use elm_varpar      , only : cft_size, surfpft_size
@@ -353,12 +354,12 @@ contains
     ! ------------------------------------------------------------------------
     ! If not using irrigation, merge irrigated CFTs into rainfed CFTs
     ! ------------------------------------------------------------------------
-    !allocate(ntpu(begg:endg))  
+    !allocate(ntpu(begg:endg))
     if (.not. irrigate) then
        if (verbose .and. masterproc) then
           write(iulog,*) trim(subname)//' crop=.T. and irrigate=.F., so merging irrigated pfts with rainfed'
        end if
-       
+
        do g = begg, endg
           !ntpu(g) = grc_pp%ntopounits(g)
           ! Left Hand Side: merged rainfed+irrigated crop pfts from nc3crop to
@@ -372,7 +373,7 @@ contains
           do t = 1,max_topounits
              wt_cft(g,t, nc3crop:npcropmax-1:2) = &
                wt_cft(g,t, nc3crop:npcropmax-1:2) + wt_cft(g,t, nc3irrig:npcropmax:2)     ! TKT
-             wt_cft(g,t, nc3irrig:npcropmax:2)  = 0._r8   
+             wt_cft(g,t, nc3irrig:npcropmax:2)  = 0._r8
           end do                                                                            ! TKT
        end do
 
